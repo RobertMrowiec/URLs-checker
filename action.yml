@@ -1,7 +1,8 @@
 name: 'URLs Checker'
 description: 'Validate URLs in .md files'
-icon: "book-open"
-color: "yellow"
+branding:
+  icon: "book-open"
+  color: "yellow"
 
 runs:
   using: 'node12'

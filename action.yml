@@ -1,0 +1,5 @@
+name: 'URLs Checker'
+description: 'Validate URLs in .md files'
+runs:
+  using: 'node12'
+  main: 'index.js'

@@ -7,6 +7,10 @@ const core = require('@actions/core');
 let URLs = []
 let brokenURLsString = ''
 let counter = 1;
+let retry = 1
+let reachable = 0;
+let broken = 0;
+
 (async () => {
   const files = glob.readdirSync('**/*.md', {})
   for (let i = 0; i < files.length; i++) {
@@ -19,21 +23,73 @@ let counter = 1;
     }))
   }
 
+  console.log('Finished: 0%')
+
   for (url of URLs) {
     const fileName = url.file.replace('temp/', '')
     url.href = url.href.includes(')') ? url.href.split(')')[0] : url.href
-    console.log(`URL handled: ${counter}`);
-
-    await fetch(url.href).then(response => {
-      if (!response.ok){
-        brokenURLsString += `\n${fileName}:\n${url.href}\n----------`
-      }
-
-    }).catch(() => url.href.includes('.md') ? {} : brokenURLsString += `\n${fileName}:\n${url.href}\n----------`);
+    percentDone(URLs, url)
+    await fetchUrl(fileName, url)
     counter++
   }
-
+  console.log('Finished: 100%');
+  
   if (brokenURLsString.length > 0)
-    return core.setFailed(`Broken URLs: ${brokenURLsString}`)
-
+    return core.setFailed(`
+Number of reachable URLs: ${reachable} \n
+Number of broken URLs: ${broken} \n
+List of broken URLs: ${brokenURLsString}
+`)
 })()
+
+async function fetchUrl(fileName, url) {
+  try {
+    const response = await fetch(url.href)
+    if (!response.ok)
+      throw {}
+    else {
+      retry++
+      reachable++
+    }
+  } catch (err) {
+    if (retry === 1){
+      retry--
+      return fetchUrl(fileName, url)
+    } else {
+      retry++
+      broken++
+      url.href.includes('.md') ? {} : brokenURLsString += `\n${fileName}:\n${url.href}\n----------`
+    }
+  }
+}
+
+
+function percentDone(all, actual) {
+  all = all.map(url => url.href);
+  actual = actual.href
+  let percent
+  const max = all.length
+  const quarter = +(max / 4).toFixed()
+  const actualPosition = all.indexOf(actual)
+
+  switch (actualPosition) {
+    case quarter:
+      percent = '25%'
+      console.log(`Finished: ${percent}`)
+      break
+    case quarter * 2:
+      percent = '50%'
+      console.log(`Finished: ${percent}`)
+      break
+    case quarter * 3:
+      percent = '75%'
+      console.log(`Finished: ${percent}`)
+      break
+    case quarter * 4:
+      percent = '100%'
+      console.log(`Finished: ${percent}`)
+      break
+    default:
+      percent = '0%'
+  }
+}

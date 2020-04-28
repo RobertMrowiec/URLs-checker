@@ -6,7 +6,6 @@ const core = require('@actions/core');
 
 let URLs = []
 let brokenURLsString = ''
-let counter = 1;
 let retry = 1
 let reachable = 0;
 let broken = 0;
@@ -30,7 +29,6 @@ let broken = 0;
     url.href = url.href.includes(')') ? url.href.split(')')[0] : url.href
     percentDone(URLs, url)
     await fetchUrl(fileName, url)
-    counter++
   }
   console.log('Finished: 100%');
   
@@ -46,23 +44,25 @@ async function fetchUrl(fileName, url) {
   try {
     const response = await fetch(url.href)
     if (!response.ok)
-      throw {}
+      throw { response }
     else {
-      retry++
+      retry = 1
       reachable++
     }
-  } catch (err) {
+  } catch (response) {
+    if (response.code === 'ETIMEDOUT')
+      return
+
     if (retry === 1){
-      retry--
+      retry = 0
       return fetchUrl(fileName, url)
     } else {
-      retry++
+      retry = 1
       broken++
       url.href.includes('.md') ? {} : brokenURLsString += `\n${fileName}:\n${url.href}\n----------`
     }
   }
 }
-
 
 function percentDone(all, actual) {
   all = all.map(url => url.href);

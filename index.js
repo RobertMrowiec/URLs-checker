@@ -50,16 +50,16 @@ async function fetchUrl(fileName, url) {
       reachable++
     }
   } catch (response) {
-    if (response.code === 'ETIMEDOUT')
-      return
-
     if (retry === 1){
       retry = 0
       return fetchUrl(fileName, url)
     } else {
+      if (response.code === 'ETIMEDOUT')
+        return
+
       retry = 1
       broken++
-      url.href.includes('.md') ? {} : brokenURLsString += `\n${fileName}:\n${url.href}\n----------`
+      url.href.includes('.md') ? broken-- : brokenURLsString += `\n${fileName}:\n${url.href}\n----------`
     }
   }
 }
@@ -83,10 +83,6 @@ function percentDone(all, actual) {
       break
     case quarter * 3:
       percent = '75%'
-      console.log(`Finished: ${percent}`)
-      break
-    case quarter * 4:
-      percent = '100%'
       console.log(`Finished: ${percent}`)
       break
     default:

@@ -50,10 +50,9 @@ async function fetchUrl(fileName, url) {
       reachable++
     }
   } catch (response) {
-    if (response.code === 'ETIMEDOUT')
-    return
-
-    if (retry === 1){
+    if (response.code === 'ETIMEDOUT'){
+      return
+    } else if (retry === 1){
       retry = 0
       return fetchUrl(fileName, url)
     } else {

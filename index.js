@@ -30,7 +30,7 @@ let broken = 0;
     percentDone(URLs, url)
     await fetchUrl(fileName, url)
   }
-  console.log('Finished: 100%');
+  console.log('Finished: 1000%');
   
   if (brokenURLsString.length > 0)
     return core.setFailed(`

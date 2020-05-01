@@ -5,10 +5,12 @@ const glob = require('glob-fs')({ gitignore: true });
 const core = require('@actions/core');
 
 let URLs = []
+let urls_length;
 let brokenURLsString = ''
 let retry = 1
 let reachable = 0;
 let broken = 0;
+let finished = 0;
 
 (async () => {
   const files = glob.readdirSync('**/*.md', {})
@@ -22,32 +24,40 @@ let broken = 0;
     }))
   }
 
-  console.log('Finished: 0%')
+  urls_length = URLs.length
 
-  for (url of URLs) {
+  console.log('Finished: 0%')
+  return Promise.all(URLs.map(async url => {
     const fileName = url.file.replace('temp/', '')
     url.href = url.href.includes(')') ? url.href.split(')')[0] : url.href
-    percentDone(URLs, url)
-    await fetchUrl(fileName, url)
-  }
-  console.log('Finished: 100%');
-  
-  if (brokenURLsString.length > 0)
-    return core.setFailed(`
+    return fetchUrl(fileName, url)
+  })).then(() => {
+    console.log('Finished: 100%');
+    if (brokenURLsString.length > 0)
+      return core.setFailed(`
 Number of reachable URLs: ${reachable} \n
 Number of broken URLs: ${broken} \n
 List of broken URLs: ${brokenURLsString}
+      `)
+    else
+      return core.setOutput(`
+All links were checked and they are working
 `)
+  })
 })()
 
 async function fetchUrl(fileName, url) {
   try {
     const response = await fetch(url.href)
-    if (!response.ok)
-      throw { response }
+    const status = response.ok
+    if (!status)
+      throw response
     else {
       retry = 1
       reachable++
+      finished++
+      percentDone(urls_length, finished)
+      return
     }
   } catch (response) {
     if (response.code === 'ETIMEDOUT'){
@@ -59,19 +69,16 @@ async function fetchUrl(fileName, url) {
       retry = 1
       broken++
       url.href.includes('.md') ? broken-- : brokenURLsString += `\n${fileName}:\n${url.href}\n----------`
+      return
     }
   }
 }
 
-function percentDone(all, actual) {
-  all = all.map(url => url.href);
-  actual = actual.href
-  let percent
-  const max = all.length
-  const quarter = +(max / 4).toFixed()
-  const actualPosition = all.indexOf(actual)
+function percentDone(length, actual) {
+  let percent;
+  const quarter = +(length / 4).toFixed()
 
-  switch (actualPosition) {
+  switch (actual) {
     case quarter:
       percent = '25%'
       console.log(`Finished: ${percent}`)
@@ -84,7 +91,5 @@ function percentDone(all, actual) {
       percent = '75%'
       console.log(`Finished: ${percent}`)
       break
-    default:
-      percent = '0%'
   }
 }

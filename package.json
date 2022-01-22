@@ -22,7 +22,7 @@
     "braces": "^3.0.2",
     "glob-fs": "^0.1.7",
     "linkifyjs": "^2.1.9",
-    "node-fetch": "^2.6.0",
+    "node-fetch": "^3.1.1",
     "set-value": "^3.0.2"
   }
 }
